@@ -66,7 +66,7 @@ export async function render(main, id, { refresh }) {
         : `<p>Only an admin can manage billing. Ask ${admins.map(m => `<strong>${esc(m.name || m.email)}</strong>`).join(' or ') || 'your admin'}.</p>`}
       </div>
     </div>
-    <p class="sub">Prefer to run it yourself? InvoiceDesk is open source: <a href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">self-host it for free</a>.</p>`;
+    <p class="sub">Prefer to run it yourself? InvoiceDesk is free for your own business when you <a href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">self-host it for free</a>.</p>`;
 
   $('#b-subscribe', main)?.addEventListener('click', e => goTo('billing-checkout', '#/billing/success', e.currentTarget));
   $('#b-portal', main)?.addEventListener('click', e => goTo('billing-portal', '#/billing', e.currentTarget));

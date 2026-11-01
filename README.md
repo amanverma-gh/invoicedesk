@@ -1,8 +1,8 @@
 # InvoiceDesk
 
-Open-source invoicing for small businesses and freelancers, with team logins.
+Fair-code invoicing for small businesses and freelancers, with team logins.
 
-- **Self-host it free**, forever, under the MIT license (instructions below).
+- **Self-host it free** for your own personal or business use (instructions below).
 - **Or use our cloud** at [invoicedesk-eight.vercel.app](https://invoicedesk-eight.vercel.app): $25 a year per business, with a 14-day free trial and no card needed.
 - **Or just try the [demo](https://invoicedesk-eight.vercel.app/demo/)** with no signup. It runs entirely in your browser and is wiped after an hour.
 
@@ -102,4 +102,11 @@ Renewals and cancellations arrive through the webhook. Access lasts until the en
 
 ## License
 
-[MIT](LICENSE). Use it, change it, sell your services with it.
+InvoiceDesk is **fair-code**, distributed under the [Sustainable Use License](LICENSE), like n8n. The source is public, but it is not an OSI open-source license.
+
+- ✅ Use it and change it for yourself or for your own business, free.
+- ✅ Share it free of charge, together with the license.
+- ❌ Sell it, resell it, or charge anyone for access to it.
+- ❌ Host it for other people or businesses as a service (SaaS), paid or free.
+
+For anything else, ask for a commercial license.

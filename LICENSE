@@ -1,21 +1,56 @@
-MIT License
+InvoiceDesk Sustainable Use License
+Version 1.0
 
 Copyright (c) 2026 Aman Verma
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Acceptance
+By using the software, you agree to all of the terms and conditions below.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Copyright License
+The licensor grants you a non-exclusive, royalty-free, worldwide, non-sublicensable,
+non-transferable license to use, copy, and modify the software, and to make derivative
+works of it, subject to the limitations below.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Limitations
+1. Own use only. You may use or modify the software only for your own personal use or
+   for the internal business purposes of yourself or your organization, for example to
+   create and track your own invoices.
+2. No selling. You may not sell, resell, rent, or license the software or any modified
+   version of it, and you may not charge anyone for access to it.
+3. No hosted service. You may not provide the software, or any modified version of it,
+   to third parties as a hosted or managed service (SaaS), where they get access to any
+   substantial part of its features, whether free or paid.
+4. Sharing. You may share the software or a modified version of it only free of charge,
+   for non-commercial purposes, and only together with this license.
+5. Notices. You may not move, change, disable, or circumvent the license notices or the
+   billing features of the software, and you may not remove or obscure any copyright notice.
+
+Commercial Use
+Any use not allowed above, including reselling the software or offering it as a hosted
+service, needs a separate written agreement with the licensor.
+
+Patents
+The licensor grants you a license, under any patent claims the licensor can license or
+becomes able to license, to make, have made, use, sell, offer for sale, import, and have
+imported the software, in each case subject to the limitations and conditions in this
+license. If you or your company make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license for the software ends
+immediately.
+
+Termination
+If you use the software in breach of these terms, your license ends. If the licensor
+notifies you of the breach and you stop the breach within 30 days of that notice, your
+license is reinstated. Any further breach after that ends your license permanently.
+
+No Liability
+As far as the law allows, the software comes as is, without any warranty or condition,
+and the licensor will not be liable to you for any damages arising out of these terms or
+the use or nature of the software, under any kind of legal claim.
+
+Definitions
+"Licensor" means the copyright holder named above.
+"Software" means the software the licensor makes available under these terms.
+"You" means the individual or entity agreeing to these terms.
+"Your organization" means any legal entity, sole proprietorship, or other kind of
+organization that you work for, plus all organizations that have control over, are under
+the control of, or are under common control with that organization.
