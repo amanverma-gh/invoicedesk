@@ -1,5 +1,5 @@
 import { $, $$, esc, toast, showError, errorText, initials } from './lib.js';
-import { sb, S, q, configured, isAdmin } from './db.js';
+import { sb, S, q, configured, isAdmin, demo, locked, PRICE } from './db.js';
 import * as invoices from './views/invoices.js';
 import * as customers from './views/customers.js';
 import * as items from './views/items.js';
@@ -7,6 +7,7 @@ import * as methods from './views/methods.js';
 import * as reports from './views/reports.js';
 import * as team from './views/team.js';
 import * as settings from './views/settings.js';
+import * as billing from './views/billing.js';
 
 const NAV = [
   ['invoices', 'Invoices', '🧾'], ['customers', 'Customers', '👥'], ['items', 'Items', '📦'],
@@ -20,7 +21,8 @@ const VIEWS = {
   'payment-methods': m => methods.render(m),
   reports: m => reports.render(m),
   team: m => team.render(m),
-  settings: (m, p) => settings.render(m, p, { onBusinessChange: drawShell })
+  settings: (m, p) => settings.render(m, p, { onBusinessChange: drawShell }),
+  billing: (m, p, id) => billing.render(m, id, { refresh: refreshBilling })
 };
 
 const BIZ_KEY = 'invoicedesk.business';
@@ -116,6 +118,7 @@ $('#onboard-form').addEventListener('submit', async e => {
 });
 $('#onboard-check').addEventListener('click', () => enter(S.user));
 $$('[data-signout]').forEach(b => b.addEventListener('click', async () => {
+  if (demo) { location.href = '../'; return; }
   await sb.auth.signOut();
   Object.assign(S, { user: null, biz: null, me: null, memberships: [] });
   location.hash = '';
@@ -133,6 +136,7 @@ async function enter(user) {
   if (!S.memberships.length) return showOnboarding();
   const saved = store.get(BIZ_KEY);
   useBusiness(S.memberships.find(m => m.business_id === saved) || S.memberships[0]);
+  try { await refreshBilling(); } catch (err) { showError(err); }
   show('shell');
   drawShell();
   route();
@@ -144,8 +148,31 @@ function useBusiness(m) {
   store.set(BIZ_KEY, m.business_id);
 }
 
+async function refreshBilling() {
+  S.billing = await q(sb.rpc('billing_state', { b: S.biz.id }));
+  drawNotice();
+}
+
+// trial countdown / cancellation notice above every page
+function drawNotice() {
+  if (demo) return;
+  const b = S.billing, el = $('#notice');
+  let html = '';
+  if (b?.enabled && b.active && !b.subscribed && b.trial_ends_at) {
+    const days = Math.max(0, Math.ceil((new Date(b.trial_ends_at) - Date.now()) / 86400000));
+    html = `<strong>Free trial:</strong> ${days} day${days === 1 ? '' : 's'} left.
+      ${isAdmin() ? `<a href="#/billing">Subscribe for ${PRICE}</a> to keep using InvoiceDesk.` : 'Ask your admin to subscribe before it ends.'}`;
+  } else if (b?.enabled && b.active && b.status === 'canceled' && b.paid_until) {
+    html = `Your subscription is cancelled and ends on ${new Date(b.paid_until).toLocaleDateString()}. ${isAdmin() ? '<a href="#/billing">Renew</a>' : ''}`;
+  }
+  el.innerHTML = html;
+  el.hidden = !html;
+}
+
 function drawShell() {
-  $('#nav').innerHTML = NAV.map(([k, label, icon]) => `<a href="#/${k}" data-nav="${k}"><span aria-hidden="true">${icon}</span>${label}</a>`).join('');
+  const nav = locked() ? [] : NAV.slice();
+  if (S.billing?.enabled) nav.push(['billing', 'Billing', '💰']);
+  $('#nav').innerHTML = nav.map(([k, label, icon]) => `<a href="#/${k}" data-nav="${k}"><span aria-hidden="true">${icon}</span>${label}</a>`).join('');
   $('#biz-name').innerHTML = S.memberships.length > 1
     ? `<select id="biz-switch" aria-label="Switch business">${S.memberships.map(m => `<option value="${m.business_id}" ${m.business_id === S.biz.id ? 'selected' : ''}>${esc(m.businesses.name)}</option>`).join('')}</select>`
     : esc(S.biz.name);
@@ -160,8 +187,7 @@ function drawShell() {
   markNav();
 }
 
-function markNav() {
-  const name = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || 'invoices';
+function markNav(name = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || 'invoices') {
   $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.nav === name || (name === 'invoice' && a.dataset.nav === 'invoices')));
 }
 
@@ -173,7 +199,7 @@ async function route() {
   const raw = location.hash.replace(/^#\/?/, '');
   const [path, query = ''] = raw.split('?');
   const [name, id] = path.split('/');
-  const view = VIEWS[name] ? name : 'invoices';
+  let view = VIEWS[name] ? name : 'invoices';
   currentHash = location.hash;
   leaveGuard = null;
   markNav();
@@ -186,10 +212,13 @@ async function route() {
     // pick up permission changes the admin made since this page was opened
     const me = await q(sb.from('members').select('*, businesses(*)').eq('business_id', S.biz.id).eq('user_id', S.user.id).maybeSingle());
     if (!me) { toast('You are no longer a member of this business'); return enter(S.user); }
-    const roleChanged = me.role !== S.me.role;
+    const wasLocked = locked(), roleChanged = me.role !== S.me.role;
     Object.assign(S.me, me);
     S.biz = me.businesses;
-    if (roleChanged) drawShell();
+    await refreshBilling();
+    if (roleChanged || wasLocked !== locked()) drawShell();
+    // trial or subscription over: only Billing works until someone pays
+    if (locked()) { view = 'billing'; markNav('billing'); }
     const guard = await VIEWS[view](main, new URLSearchParams(query), id);
     if (typeof guard === 'function' && main.isConnected) leaveGuard = guard;
   } catch (err) {
@@ -209,6 +238,7 @@ $('#menu-btn').addEventListener('click', () => $('#shell').classList.toggle('nav
 
 async function boot() {
   if (!configured) return show('setup');
+  if (demo) return startDemo();
   // the reset email link lands here with ?code=; the library may announce it after getSession resolves
   const askNewPassword = () => showAuth('newpass', 'Enter a new password for your account.');
   let recovering = /[?&]code=/.test(location.search) && store.get(RESET_KEY) === '1';
@@ -219,6 +249,40 @@ async function boot() {
   if (location.search) history.replaceState(null, '', location.pathname + location.hash);
   if (recovering) return askNewPassword();
   if (session) await enter(session.user);
-  else showAuth('signin');
+  else showAuth(location.hash === '#signup' ? 'signup' : 'signin');
+}
+
+// ============================================================ demo
+
+async function startDemo() {
+  const { demoExpiresAt, demoIsNew, switchDemoUser, resetDemo } = await import('./demo-db.js');
+  if (demoIsNew) history.replaceState(null, '', location.pathname);
+  const restart = () => { resetDemo(); location.replace(location.pathname); };
+  $('#signout-btn').textContent = 'Exit demo';
+  const el = $('#notice');
+  el.hidden = false;
+  el.classList.add('demo');
+  el.innerHTML = `<span class="demo-info"><strong>Demo</strong> · saved only in this browser · deleted in <b id="demo-left"></b></span>
+    <span class="demo-as">Try as <button class="btn sm" data-as="admin">Admin</button><button class="btn sm" data-as="member">Member</button></span>
+    <span class="demo-actions"><button class="btn sm ghost" id="demo-reset">Reset</button>
+    <a class="btn sm primary" href="../app/#signup">Start free trial</a></span>`;
+  const markAs = () => $$('[data-as]', el).forEach(b => b.classList.toggle('primary', b.dataset.as === S.me?.role));
+  $$('[data-as]', el).forEach(b => b.addEventListener('click', async () => {
+    if (leaveGuard && !leaveGuard()) return;
+    switchDemoUser(b.dataset.as);
+    await enter((await sb.auth.getSession()).data.session.user);
+    markAs();
+    toast(b.dataset.as === 'admin' ? 'You are now the admin' : 'You are now a team member: no deleting, and saved invoices are read-only');
+  }));
+  $('#demo-reset', el).addEventListener('click', restart);
+  const tick = () => {
+    const left = demoExpiresAt() - Date.now();
+    if (left <= 0) return restart();
+    $('#demo-left').textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+  await enter((await sb.auth.getSession()).data.session.user);
+  markAs();
 }
 boot().catch(err => { showError(err); showAuth('signin'); });

@@ -1,15 +1,23 @@
 // Supabase client, the signed-in user's context, and data loading.
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 
 const cfg = window.INVOICEDESK || {};
-export const configured = Boolean(cfg.supabaseUrl && cfg.supabaseKey && !cfg.supabaseUrl.includes('YOUR-'));
+// the demo (demo/index.html) runs on a browser-only stand-in for Supabase
+export const demo = Boolean(window.INVOICEDESK_DEMO);
+export const configured = demo || Boolean(cfg.supabaseUrl && cfg.supabaseKey && !cfg.supabaseUrl.includes('YOUR-'));
 // PKCE puts the email-link code in ?code= so it doesn't clash with the app's #/routes
-export const sb = configured ? createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { flowType: 'pkce' } }) : null;
+export const sb = demo ? (await import('./demo-db.js')).demoClient()
+  : configured ? (await import(SUPABASE_JS)).createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { flowType: 'pkce' } })
+  : null;
 
-// S.biz is the current business, S.me the signed-in user's membership row in it
-export const S = { user: null, biz: null, me: null, memberships: [] };
+export const PRICE = '$25 / year';
+
+// S.biz is the current business, S.me the signed-in user's membership row in it,
+// S.billing the subscription state (billing is off on self-hosted copies)
+export const S = { user: null, biz: null, me: null, memberships: [], billing: null };
 
 export const isAdmin = () => S.me?.role === 'admin';
+export const locked = () => Boolean(S.billing?.enabled && !S.billing.active);
 export const canEditInvoices = () => isAdmin() || Boolean(S.biz?.member_can_edit);
 export const settings = () => S.biz?.settings || {};
 

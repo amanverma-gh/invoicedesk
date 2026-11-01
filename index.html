@@ -3,74 +3,199 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>InvoiceDesk – invoicing for small teams</title>
-  <meta name="description" content="Free, open-source invoicing for small businesses and freelancers: team logins, customers, items, payment methods, payment tracking and reports.">
+  <title>InvoiceDesk – open-source invoicing for small teams</title>
+  <meta name="description" content="Invoicing for small businesses and freelancers with team logins, customers, items, UPI / bank / Zelle payment details, payment tracking and reports. Self-host free, or use our cloud for $25 a year.">
   <meta name="theme-color" content="#0f766e">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="InvoiceDesk – open-source invoicing for small teams">
+  <meta property="og:description" content="Team logins, payment tracking and reports. Self-host free, or $25/year on our cloud. Try the demo without signing up.">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css">
+  <link rel="stylesheet" href="assets/site.css">
   <script src="config.js"></script>
-  <script type="module" src="assets/js/main.js"></script>
+  <!-- self-hosted copies can skip this page: set landing: false in config.js -->
+  <!-- email confirmation / password reset links that land here belong to the app -->
+  <script>
+    if ((window.INVOICEDESK && window.INVOICEDESK.landing === false) || /[?&](code|error_description)=/.test(location.search) || /access_token=|error_description=/.test(location.hash))
+      location.replace('app/' + location.search + location.hash);
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"InvoiceDesk","applicationCategory":"BusinessApplication","operatingSystem":"Web",
+   "offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Self-hosted, open source"},{"@type":"Offer","price":"25","priceCurrency":"USD","description":"Cloud, per business per year"}]}
+  </script>
 </head>
 <body>
-  <!-- shown until config.js has Supabase keys -->
-  <section id="setup" class="center-screen" hidden>
-    <div class="card narrow">
-      <h1>Almost there</h1>
-      <p>InvoiceDesk needs a Supabase project. Put your project URL and publishable key in <code>config.js</code>, then reload.
-        See <code>README.md</code> for the 10-minute setup.</p>
-    </div>
-  </section>
-
-  <section id="auth" class="center-screen" hidden>
-    <div class="brand big"><img src="assets/img/favicon.svg" alt="" width="40" height="40"> InvoiceDesk</div>
-    <form class="card narrow" id="auth-form">
-      <h1 id="auth-title">Sign in</h1>
-      <p class="msg" id="auth-msg" hidden></p>
-      <label class="fld" id="auth-name"><span>Your name</span><input name="name" autocomplete="name" maxlength="80"></label>
-      <label class="fld" id="auth-email"><span>Email</span><input name="email" type="email" autocomplete="email"></label>
-      <label class="fld" id="auth-pass"><span>Password</span><input name="password" type="password" minlength="8"></label>
-      <button class="btn primary block" id="auth-submit">Sign in</button>
-      <div class="auth-links" id="auth-links"></div>
-    </form>
-    <p class="foot">Free and open source · Invoices, payments and reports for small teams</p>
-  </section>
-
-  <section id="onboard" class="center-screen" hidden>
-    <div class="brand big"><img src="assets/img/favicon.svg" alt="" width="40" height="40"> InvoiceDesk</div>
-    <div class="card narrow">
-      <h1>Welcome!</h1>
-      <p>You’re signed in as <strong id="onboard-email"></strong>.</p>
-      <h2>Joining a team?</h2>
-      <p class="sub">Ask your admin to invite this email address in <em>Team</em>, then click:</p>
-      <button class="btn block" id="onboard-check" type="button">I’ve been invited – check again</button>
-      <h2>Or start your own business</h2>
-      <form id="onboard-form" class="stack">
-        <label class="fld"><span>Business name</span><input name="name" required maxlength="120" placeholder="e.g. Sharma Design Studio"></label>
-        <button class="btn primary block">Create business</button>
-        <p class="sub">You’ll be its admin and can invite your team.</p>
-      </form>
-      <button class="btn ghost block" data-signout type="button">Sign out</button>
-    </div>
-  </section>
-
-  <div id="shell" hidden>
-    <header class="topbar">
-      <button class="icon-btn" id="menu-btn" aria-label="Menu">☰</button>
-      <span class="brand"><img src="assets/img/favicon.svg" alt="" width="24" height="24"> InvoiceDesk</span>
-    </header>
-    <aside class="sidebar">
-      <div class="brand"><img src="assets/img/favicon.svg" alt="" width="28" height="28"> InvoiceDesk</div>
-      <div class="biz" id="biz-name"></div>
-      <nav id="nav" aria-label="Main"></nav>
-      <div class="me-box">
-        <div class="me" id="me"></div>
-        <button class="btn sm ghost block" data-signout type="button">Sign out</button>
+  <header class="nav">
+    <div class="wrap nav-in">
+      <a class="logo" href="./"><img src="assets/img/favicon.svg" alt="" width="30" height="30"> InvoiceDesk</a>
+      <nav class="links" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#team">Team</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn ghost" href="app/">Sign in</a>
+        <a class="btn primary" href="app/#signup">Start free trial</a>
       </div>
-    </aside>
-    <main id="main"></main>
-  </div>
+    </div>
+  </header>
 
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <div id="print-area"></div>
+  <main>
+    <section class="hero">
+      <div class="wrap hero-in">
+        <div class="hero-text">
+          <span class="eyebrow">Open source · Made for small teams</span>
+          <h1>Invoices, payments and reports for your whole team</h1>
+          <p class="lead">Create GST/VAT-ready invoices, share UPI, bank or Zelle details, record every payment and see who owes you what. Your team logs in with roles. Only the admin can delete.</p>
+          <div class="cta-row">
+            <a class="btn primary big" href="app/#signup">Start 14-day free trial</a>
+            <a class="btn big" href="demo/">Try the demo, no signup</a>
+          </div>
+          <p class="fine">$25 a year per business after the trial · or <a href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">self-host free forever</a></p>
+        </div>
+
+        <div class="mock" aria-hidden="true">
+          <div class="mock-bar"><i></i><i></i><i></i></div>
+          <div class="mock-body">
+            <div class="mock-kpis">
+              <div><span>Received</span><b>₹1,24,560</b></div>
+              <div><span>Pending</span><b class="warn">₹62,400</b></div>
+              <div><span>Overdue</span><b class="bad">₹14,000</b></div>
+            </div>
+            <div class="mock-chart">
+              <i style="height:40%"></i><i class="r" style="height:30%"></i>
+              <i style="height:65%"></i><i class="r" style="height:55%"></i>
+              <i style="height:50%"></i><i class="r" style="height:48%"></i>
+              <i style="height:85%"></i><i class="r" style="height:60%"></i>
+              <i style="height:70%"></i><i class="r" style="height:72%"></i>
+              <i style="height:95%"></i><i class="r" style="height:80%"></i>
+            </div>
+            <table>
+              <tr><td><b>INV-24</b> Acme Retail</td><td>₹35,400</td><td><em class="paid">Paid</em></td></tr>
+              <tr><td><b>INV-25</b> Bluebird Cafe</td><td>₹28,320</td><td><em class="part">Partly paid</em></td></tr>
+              <tr><td><b>INV-26</b> Northwind LLC</td><td>$1,800</td><td><em class="due">Overdue</em></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <h2>Everything a small business needs to get paid</h2>
+        <p class="section-lead">No spreadsheets, no messy WhatsApp follow-ups. One place for invoices, customers and money coming in.</p>
+        <div class="grid3">
+          <article class="feat"><span>🧾</span><h3>Professional invoices</h3><p>Your logo, GST/VAT, discounts, shipping and any currency. Download a clean PDF or print in one click.</p></article>
+          <article class="feat"><span>📱</span><h3>UPI QR with the amount</h3><p>Add your UPI ID and every invoice gets a QR code with the exact balance. Customers scan and pay.</p></article>
+          <article class="feat"><span>💳</span><h3>Any payment method</h3><p>UPI, QR code, phone number, payment link, Zelle, bank transfer or your own. Choose which show on each invoice.</p></article>
+          <article class="feat"><span>✅</span><h3>Record payments</h3><p>Cash, bank, UPI, card or cheque, including part payments with a reference. Status updates on its own.</p></article>
+          <article class="feat"><span>📊</span><h3>Clear reports</h3><p>Earnings by customer, pending and overdue amounts, collection rate, days to get paid and a monthly chart. Export to CSV.</p></article>
+          <article class="feat"><span>👥</span><h3>Customers and items</h3><p>Save them once and pick them on invoices. Item prices fill in automatically, and you can still change them per invoice.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="team">
+      <div class="wrap team-in">
+        <div>
+          <h2>Built for a team, safe for the owner</h2>
+          <p class="section-lead left">Invite your staff by email. They create invoices and record payments. Old invoices are protected.</p>
+          <ul class="ticks">
+            <li><b>Members can’t delete</b> invoices, payments, customers or items.</li>
+            <li><b>Saved invoices are read-only</b> for members, unless the admin allows editing.</li>
+            <li><b>Payment details hide themselves</b> once an invoice is fully paid.</li>
+            <li><b>Every change is signed:</b> see who created and who last edited each invoice.</li>
+            <li>Rules are enforced by the database, not just hidden in the screen.</li>
+          </ul>
+        </div>
+        <table class="roles">
+          <thead><tr><th></th><th>Admin</th><th>Member</th></tr></thead>
+          <tbody>
+            <tr><td>Create invoices &amp; record payments</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Add customers &amp; items</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Edit saved invoices</td><td>✅</td><td>If allowed</td></tr>
+            <tr><td>Delete anything</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Payment methods, team &amp; settings</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Reports</td><td>✅</td><td>✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="pricing">
+      <div class="wrap">
+        <h2>Simple pricing. Or free, if you host it.</h2>
+        <p class="section-lead">Like n8n: run it on your own servers for free, or let us run it for you.</p>
+        <div class="grid3 prices">
+          <article class="price">
+            <h3>Demo</h3>
+            <div class="amount">Free</div>
+            <p class="desc">Try every feature right now. No signup.</p>
+            <ul class="ticks">
+              <li>Sample business ready to explore</li>
+              <li>Switch between admin and member</li>
+              <li>Saved only in your browser</li>
+              <li>Deleted after 1 hour</li>
+            </ul>
+            <a class="btn block" href="demo/">Open the demo</a>
+          </article>
+          <article class="price featured">
+            <span class="badge">Most popular</span>
+            <h3>Cloud</h3>
+            <div class="amount">$25<span> / year</span></div>
+            <p class="desc">Per business, with unlimited team members.</p>
+            <ul class="ticks">
+              <li>14-day free trial, no card needed</li>
+              <li>Unlimited invoices, customers and members</li>
+              <li>Hosted, secured and backed up for you</li>
+              <li>Cancel any time</li>
+            </ul>
+            <a class="btn primary block" href="app/#signup">Start free trial</a>
+          </article>
+          <article class="price">
+            <h3>Self-host</h3>
+            <div class="amount">Free<span> forever</span></div>
+            <p class="desc">Open source (MIT). Your servers, your data.</p>
+            <ul class="ticks">
+              <li>Every feature, no limits</li>
+              <li>Runs on free Supabase + Vercel</li>
+              <li>About 10 minutes to set up</li>
+              <li>Change the code however you like</li>
+            </ul>
+            <a class="btn block" href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">Get it on GitHub</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="faq">
+      <div class="wrap narrow">
+        <h2>Questions</h2>
+        <details><summary>What happens when the free trial ends?</summary><p>Your account is locked until the admin subscribes for $25 a year. Nothing is deleted: subscribe and everything is back exactly as you left it.</p></details>
+        <details><summary>Is $25 per person?</summary><p>No. It is $25 a year per business, however many team members you add.</p></details>
+        <details><summary>Is the self-hosted version really free?</summary><p>Yes. The full source code is on GitHub under the MIT license. Create a free Supabase project, run one SQL file and deploy the files to any static host.</p></details>
+        <details><summary>Does it support GST and UPI?</summary><p>Yes. Set your GST rate and GSTIN once. Add your UPI ID and each invoice shows a QR code with the exact amount due. Customers abroad can pay by Zelle, bank transfer or a payment link.</p></details>
+        <details><summary>Where is my data stored on the cloud plan?</summary><p>In a Supabase (PostgreSQL) database with row-level security, so each business can only ever see its own data.</p></details>
+        <details><summary>Is the demo safe to play with?</summary><p>Yes. It never touches our servers. Everything stays in your browser and is deleted automatically after one hour.</p></details>
+      </div>
+    </section>
+
+    <section class="section final">
+      <div class="wrap narrow center">
+        <h2>Send your next invoice in two minutes</h2>
+        <div class="cta-row center">
+          <a class="btn primary big" href="app/#signup">Start 14-day free trial</a>
+          <a class="btn big light" href="demo/">Try the demo</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span>© 2026 InvoiceDesk · Open source under the MIT license</span>
+      <span><a href="demo/">Demo</a> · <a href="app/">Sign in</a> · <a href="https://github.com/amanverma-gh/invoicedesk" target="_blank" rel="noopener">GitHub</a></span>
+    </div>
+  </footer>
 </body>
 </html>

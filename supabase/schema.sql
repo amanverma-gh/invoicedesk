@@ -314,3 +314,157 @@ create policy "admins delete" on public.invoices for delete to authenticated usi
 create policy "members read" on public.payments for select to authenticated using (public.is_member(business_id));
 create policy "members record" on public.payments for insert to authenticated with check (public.is_member(business_id));
 create policy "admins delete" on public.payments for delete to authenticated using (public.is_admin(business_id));
+
+-- ============================================================ cloud billing
+
+create table public.app_config (
+  id boolean primary key default true check (id),
+  billing_enabled boolean not null default false,
+  trial_days integer not null default 14
+);
+insert into public.app_config default values;
+
+create table public.subscriptions (
+  business_id uuid primary key references public.businesses on delete cascade,
+  status text not null default 'trialing',
+  trial_ends_at timestamptz,
+  paid_until timestamptz,
+  polar_customer_id text,
+  polar_subscription_id text,
+  updated_at timestamptz not null default now()
+);
+-- only the Polar webhook (service role) writes here
+alter table public.app_config enable row level security;
+alter table public.subscriptions enable row level security;
+create policy "members read" on public.subscriptions for select to authenticated using (public.is_member(business_id));
+
+-- businesses that existed before billing get a fresh trial
+insert into public.subscriptions (business_id, trial_ends_at)
+  select id, now() + interval '14 days' from public.businesses on conflict do nothing;
+
+-- trial still running, or paid up
+create function public.is_paid_up(b uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select not coalesce((select billing_enabled from public.app_config), false)
+    or exists (select 1 from public.subscriptions s where s.business_id = b
+      and greatest(coalesce(s.trial_ends_at, '-infinity'), coalesce(s.paid_until, '-infinity')) > now());
+$$;
+create function public.has_access(b uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.is_member(b) and public.is_paid_up(b);
+$$;
+create function public.admin_access(b uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.is_admin(b) and public.is_paid_up(b);
+$$;
+create or replace function public.can_edit_invoices(b uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.admin_access(b) or (
+    public.has_access(b) and exists (select 1 from public.businesses where id = b and member_can_edit)
+  );
+$$;
+
+-- what the app shows on the Billing page
+create function public.billing_state(b uuid) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'enabled', c.billing_enabled,
+    'active', public.is_paid_up(b),
+    'status', coalesce(s.status, 'trialing'),
+    'trial_ends_at', s.trial_ends_at,
+    'paid_until', s.paid_until,
+    'subscribed', s.polar_subscription_id is not null)
+  from public.app_config c left join public.subscriptions s on s.business_id = b
+  where public.is_member(b);
+$$;
+
+create or replace function public.create_business(business_name text) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  bid uuid;
+  u auth.users;
+begin
+  select * into u from auth.users where id = auth.uid();
+  if u.id is null then raise exception 'Not signed in'; end if;
+  insert into public.businesses (name) values (trim(business_name)) returning id into bid;
+  insert into public.members (business_id, user_id, email, name, role)
+    values (bid, u.id, u.email, coalesce(u.raw_user_meta_data ->> 'name', ''), 'admin');
+  insert into public.subscriptions (business_id, trial_ends_at)
+    values (bid, now() + make_interval(days => (select trial_days from public.app_config)));
+  return bid;
+end $$;
+
+create or replace function public.next_invoice_number(b uuid) returns integer
+language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+  if not public.has_access(b) then raise exception 'Not allowed'; end if;
+  update public.businesses set next_number = next_number + 1 where id = b returning next_number - 1 into n;
+  return n;
+end $$;
+
+revoke execute on function public.is_paid_up(uuid), public.has_access(uuid), public.admin_access(uuid),
+  public.billing_state(uuid) from anon, public;
+grant execute on function public.is_paid_up(uuid), public.has_access(uuid), public.admin_access(uuid),
+  public.billing_state(uuid) to authenticated;
+
+-- when the trial or subscription ends, everything except the business name, team list and billing is locked
+drop policy "admins update" on public.businesses;
+create policy "admins update" on public.businesses for update to authenticated
+  using (public.admin_access(id)) with check (public.admin_access(id));
+drop policy "admins update" on public.members;
+create policy "admins update" on public.members for update to authenticated
+  using (public.admin_access(business_id)) with check (public.admin_access(business_id));
+drop policy "admins remove" on public.members;
+create policy "admins remove" on public.members for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "admins read" on public.invites;
+drop policy "admins invite" on public.invites;
+drop policy "admins cancel" on public.invites;
+create policy "admins read" on public.invites for select to authenticated using (public.admin_access(business_id));
+create policy "admins invite" on public.invites for insert to authenticated with check (public.admin_access(business_id));
+create policy "admins cancel" on public.invites for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "members read" on public.customers;
+drop policy "members add" on public.customers;
+drop policy "members edit" on public.customers;
+drop policy "admins delete" on public.customers;
+create policy "members read" on public.customers for select to authenticated using (public.has_access(business_id));
+create policy "members add" on public.customers for insert to authenticated with check (public.has_access(business_id));
+create policy "members edit" on public.customers for update to authenticated
+  using (public.has_access(business_id)) with check (public.has_access(business_id));
+create policy "admins delete" on public.customers for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "members read" on public.items;
+drop policy "members add" on public.items;
+drop policy "members edit" on public.items;
+drop policy "admins delete" on public.items;
+create policy "members read" on public.items for select to authenticated using (public.has_access(business_id));
+create policy "members add" on public.items for insert to authenticated with check (public.has_access(business_id));
+create policy "members edit" on public.items for update to authenticated
+  using (public.has_access(business_id)) with check (public.has_access(business_id));
+create policy "admins delete" on public.items for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "members read" on public.payment_methods;
+drop policy "admins add" on public.payment_methods;
+drop policy "admins edit" on public.payment_methods;
+drop policy "admins delete" on public.payment_methods;
+create policy "members read" on public.payment_methods for select to authenticated using (public.has_access(business_id));
+create policy "admins add" on public.payment_methods for insert to authenticated with check (public.admin_access(business_id));
+create policy "admins edit" on public.payment_methods for update to authenticated
+  using (public.admin_access(business_id)) with check (public.admin_access(business_id));
+create policy "admins delete" on public.payment_methods for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "members read" on public.invoices;
+drop policy "members create" on public.invoices;
+drop policy "admins delete" on public.invoices;
+create policy "members read" on public.invoices for select to authenticated using (public.has_access(business_id));
+create policy "members create" on public.invoices for insert to authenticated with check (public.has_access(business_id));
+create policy "admins delete" on public.invoices for delete to authenticated using (public.admin_access(business_id));
+
+drop policy "members read" on public.payments;
+drop policy "members record" on public.payments;
+drop policy "admins delete" on public.payments;
+create policy "members read" on public.payments for select to authenticated using (public.has_access(business_id));
+create policy "members record" on public.payments for insert to authenticated with check (public.has_access(business_id));
+create policy "admins delete" on public.payments for delete to authenticated using (public.admin_access(business_id));
